@@ -1,14 +1,9 @@
 use crate::state::GlobalState;
+use crate::state::{Challenge, Participant};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount};
+use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount, Transfer};
 
-// pub fn participate_in_challenge(
-//     ctx: Context<ParticipateInChallenge>,
-//     challenge_id: Pubkey,
-// ) -> Result<()> {
-//     // Logic for challenge participation
-//     Ok(())
-// }
+use crate::error::ErrorCode;
 
 // pub fn payout_to_winners(ctx: Context<PayoutToWinners>, challenge_id: Pubkey) -> Result<()> {
 //     Ok(())
@@ -58,6 +53,41 @@ pub fn exchange_sol_for_credits(ctx: Context<ExchangeSolForCredits>, amount: u64
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::mint_to(cpi_ctx, credits_to_mint)?;
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct ParticipateInChallenge<'info> {
+    #[account(mut)]
+    pub participant: Signer<'info>,
+    #[account(mut)]
+    pub participant_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub escrow_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub challenge: Account<'info, Challenge>,
+    #[account(mut)]
+    pub participant_record: Account<'info, Participant>,
+    pub token_program: Program<'info, Token>,
+}
+
+pub fn participate_in_challenge(ctx: Context<ParticipateInChallenge>, amount: u64) -> Result<()> {
+    require!(
+        ctx.accounts.challenge.is_active,
+        ErrorCode::ChallengeInactive
+    );
+
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.participant_account.to_account_info(),
+        to: ctx.accounts.escrow_account.to_account_info(),
+        authority: ctx.accounts.participant.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    token::transfer(cpi_ctx, amount)?;
+
+    ctx.accounts.participant_record.entry_fee_paid = amount;
 
     Ok(())
 }
