@@ -91,3 +91,26 @@ pub fn participate_in_challenge(ctx: Context<ParticipateInChallenge>, amount: u6
 
     Ok(())
 }
+
+#[derive(Accounts)]
+pub struct PayoutToWinners<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(mut)]
+    pub escrow_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub winner_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
+}
+
+pub fn payout_to_winners(ctx: Context<PayoutToWinners>, amount: u64) -> Result<()> {
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.escrow_account.to_account_info(),
+        to: ctx.accounts.winner_account.to_account_info(),
+        authority: ctx.accounts.authority.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    token::transfer(cpi_ctx, amount)?;
+    Ok(())
+}
