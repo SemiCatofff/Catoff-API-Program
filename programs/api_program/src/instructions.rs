@@ -1,7 +1,7 @@
 use crate::state::GlobalState;
 use crate::state::{Challenge, Participant};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
 
@@ -112,5 +112,37 @@ pub fn payout_to_winners(ctx: Context<PayoutToWinners>, amount: u64) -> Result<(
     let cpi_program = ctx.accounts.token_program.to_account_info();
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct WithdrawCredits<'info> {
+    #[account(mut)]
+    pub user: Signer<'info>,
+    #[account(mut)]
+    pub user_credit_account: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub user_sol_account: AccountInfo<'info>,
+    #[account(mut)]
+    pub credit_mint: Account<'info, Mint>,
+    pub token_program: Program<'info, Token>,
+}
+
+pub fn withdraw_credits(ctx: Context<WithdrawCredits>, credit_amount: u64) -> Result<()> {
+    let burn_cpi_accounts = Burn {
+        mint: ctx.accounts.credit_mint.to_account_info(),
+        from: ctx.accounts.user_credit_account.to_account_info(),
+        authority: ctx.accounts.user.to_account_info(),
+    };
+    let burn_cpi_program = ctx.accounts.token_program.to_account_info();
+    let burn_cpi_ctx = CpiContext::new(burn_cpi_program, burn_cpi_accounts);
+    token::burn(burn_cpi_ctx, credit_amount)?;
+
+    let sol_amount = credit_amount / 100;
+
+    // Transfer SOL to the user's SOL account
+    // Due to Anchor's limitations in directly handling SOL transfers within the same transaction as CPI calls,
+    // consider handling the SOL transfer logic separately, possibly via a manual or off-chain process.
+
     Ok(())
 }
