@@ -1,15 +1,12 @@
+mod instructions;
+mod state;
+
 use anchor_lang::prelude::*;
 
 declare_id!("CbkPd8y8rgVaAgfGo6TmiPXd5JGViVbbZW6WBCs8aD9V");
 
 #[program]
-pub mod ap_iprogram {
+pub mod p2p_challenge_platform {
     use super::*;
-
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        Ok(())
-    }
+    pub use instructions::*;
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
