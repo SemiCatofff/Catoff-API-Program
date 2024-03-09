@@ -18,3 +18,10 @@ pub struct GlobalState {
     pub admin: Pubkey,
     pub sol_to_credit_exchange_rate: u64,
 }
+
+#[account]
+pub struct WithdrawalRequest {
+    pub requestor: Pubkey, // User requesting the withdrawal
+    pub amount: u64,       // Amount of SOL to withdraw, calculated based on credits burned
+    pub processed: bool,   // Whether the request has been processed by the off-chain service
+}
