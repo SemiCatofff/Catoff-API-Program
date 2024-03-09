@@ -1,17 +1,9 @@
 use crate::state::GlobalState;
-use crate::state::{Challenge, Participant};
+use crate::state::{Challenge, Participant, WithdrawalRequest};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Burn, Mint, MintTo, Token, TokenAccount, Transfer};
 
 use crate::error::ErrorCode;
-
-// pub fn payout_to_winners(ctx: Context<PayoutToWinners>, challenge_id: Pubkey) -> Result<()> {
-//     Ok(())
-// }
-
-// pub fn withdraw_credits(ctx: Context<WithdrawCredits>, amount: u64) -> Result<()> {
-//     Ok(())
-// }
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -122,10 +114,11 @@ pub struct WithdrawCredits<'info> {
     #[account(mut)]
     pub user_credit_account: Account<'info, TokenAccount>,
     #[account(mut)]
-    pub user_sol_account: AccountInfo<'info>,
-    #[account(mut)]
     pub credit_mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
+    #[account(init, payer = user, space = 8 + 32 + 8 + 1, seeds = [user.key().as_ref(), b"_withdrawal_request"], bump)]
+    pub withdrawal_request: Account<'info, WithdrawalRequest>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn withdraw_credits(ctx: Context<WithdrawCredits>, credit_amount: u64) -> Result<()> {
@@ -140,9 +133,10 @@ pub fn withdraw_credits(ctx: Context<WithdrawCredits>, credit_amount: u64) -> Re
 
     let sol_amount = credit_amount / 100;
 
-    // Transfer SOL to the user's SOL account
-    // Due to Anchor's limitations in directly handling SOL transfers within the same transaction as CPI calls,
-    // consider handling the SOL transfer logic separately, possibly via a manual or off-chain process.
+    let withdrawal_request = &mut ctx.accounts.withdrawal_request;
+    withdrawal_request.requestor = *ctx.accounts.user.key;
+    withdrawal_request.amount = sol_amount;
+    withdrawal_request.processed = false;
 
     Ok(())
 }
