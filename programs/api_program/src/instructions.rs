@@ -37,3 +37,18 @@ pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
     escrow_account.sol_balance += amount; // Update your internal tracking of SOL balance.
     Ok(())
 }
+
+pub fn deposit_usdt(ctx: Context<DepositUsdt>, amount: u64) -> Result<()> {
+    let cpi_accounts = Transfer {
+        from: ctx.accounts.depositor_token_account.to_account_info(),
+        to: ctx.accounts.escrow_token_account.to_account_info(),
+        authority: ctx.accounts.depositor.to_account_info(),
+    };
+    let cpi_program = ctx.accounts.token_program.to_account_info();
+    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    token::transfer(cpi_ctx, amount)?;
+    let escrow_account = &mut ctx.accounts.escrow_account;
+    escrow_account.usdt_balance += amount;
+
+    Ok(())
+}
