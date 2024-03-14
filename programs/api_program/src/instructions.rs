@@ -1,7 +1,8 @@
+use crate::error::ErrorCode;
 use crate::state::EscrowAccount;
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::system_instruction;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
-use solana_program::system_instruction;
 
 #[derive(Accounts)]
 pub struct DepositSol<'info> {
@@ -13,8 +14,11 @@ pub struct DepositSol<'info> {
 #[derive(Accounts)]
 pub struct DepositUsdt<'info> {
     #[account(mut)]
-    pub escrow_token_account: Account<'info, TokenAccount>,
     pub depositor: Signer<'info>,
+    #[account(mut)]
+    pub depositor_token_account: Account<'info, TokenAccount>, // The depositor's USDT account
+    #[account(mut)]
+    pub escrow_token_account: Account<'info, TokenAccount>, // The escrow's USDT account
     #[account(mut)]
     pub escrow_account: Account<'info, EscrowAccount>, // To track USDT balance if needed.
     pub token_program: Program<'info, Token>,
