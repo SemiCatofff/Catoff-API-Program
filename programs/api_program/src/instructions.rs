@@ -1,7 +1,7 @@
 use crate::error::ErrorCode;
 use crate::state::EscrowAccount;
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::system_instruction;
+// use anchor_lang::solana_program::system_instruction;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
@@ -32,6 +32,8 @@ pub struct Withdraw<'info> {
     pub escrow_token_account: Account<'info, TokenAccount>, // For USDT withdrawals.
     #[account(signer)]
     pub authority: Signer<'info>,
+    /// CHECK: The `to_account` is a generic account that can be either a SOL account or an SPL Token account.
+    /// Safety is ensured by runtime checks depending on the withdrawal currency type.
     pub to_account: AccountInfo<'info>, // For SOL withdrawals, this needs to be a SystemAccount.
     pub token_program: Program<'info, Token>,
 }
