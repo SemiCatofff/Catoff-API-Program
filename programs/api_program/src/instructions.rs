@@ -19,3 +19,15 @@ pub struct DepositUsdt<'info> {
     pub escrow_account: Account<'info, EscrowAccount>, // To track USDT balance if needed.
     pub token_program: Program<'info, Token>,
 }
+
+#[derive(Accounts)]
+pub struct Withdraw<'info> {
+    #[account(mut)]
+    pub escrow_account: Account<'info, EscrowAccount>,
+    #[account(mut)]
+    pub escrow_token_account: Account<'info, TokenAccount>, // For USDT withdrawals.
+    #[account(signer)]
+    pub authority: Signer<'info>,
+    pub to_account: AccountInfo<'info>, // For SOL withdrawals, this needs to be a SystemAccount.
+    pub token_program: Program<'info, Token>,
+}
