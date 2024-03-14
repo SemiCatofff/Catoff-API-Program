@@ -31,3 +31,9 @@ pub struct Withdraw<'info> {
     pub to_account: AccountInfo<'info>, // For SOL withdrawals, this needs to be a SystemAccount.
     pub token_program: Program<'info, Token>,
 }
+
+pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
+    let escrow_account = &mut ctx.accounts.escrow_account;
+    escrow_account.sol_balance += amount; // Update your internal tracking of SOL balance.
+    Ok(())
+}
