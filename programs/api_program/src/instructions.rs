@@ -1,6 +1,6 @@
 use crate::state::EscrowAccount;
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 use solana_program::system_instruction;
 
 #[derive(Accounts)]
