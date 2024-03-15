@@ -1,5 +1,5 @@
 use crate::error::ErrorCode;
-use crate::state::EscrowAccount;
+use crate::state::{DepositEvent, EscrowAccount, WithdrawEvent};
 use anchor_lang::prelude::*;
 // use anchor_lang::solana_program::system_instruction;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
@@ -40,7 +40,13 @@ pub struct Withdraw<'info> {
 
 pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
     let escrow_account = &mut ctx.accounts.escrow_account;
-    escrow_account.sol_balance += amount; // Update your internal tracking of SOL balance.
+    escrow_account.sol_balance += amount;
+    emit!(DepositEvent {
+        from: ctx.accounts.depositor.key(),
+        amount,
+        currency: "SOL".to_string(),
+    });
+
     Ok(())
 }
 
@@ -55,6 +61,12 @@ pub fn deposit_usdt(ctx: Context<DepositUsdt>, amount: u64) -> Result<()> {
     token::transfer(cpi_ctx, amount)?;
     let escrow_account = &mut ctx.accounts.escrow_account;
     escrow_account.usdt_balance += amount;
+
+    emit!(DepositEvent {
+        from: ctx.accounts.depositor.key(),
+        amount,
+        currency: "USDT".to_string(),
+    });
 
     Ok(())
 }
@@ -86,6 +98,13 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
                 .to_account_info()
                 .try_borrow_mut_lamports()? -= amount;
             **ctx.accounts.to_account.try_borrow_mut_lamports()? += amount;
+
+            // Emit the withdraw event for SOL
+            emit!(WithdrawEvent {
+                to: ctx.accounts.to_account.key(),
+                amount,
+                currency: "SOL".to_string(),
+            });
         }
         "USDT" => {
             // Transfer USDT using the SPL Token program
@@ -97,6 +116,13 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
             let cpi_program = ctx.accounts.token_program.to_account_info();
             let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
             token::transfer(cpi_ctx, amount)?;
+
+            // Emit the withdraw event for USDT
+            emit!(WithdrawEvent {
+                to: ctx.accounts.to_account.key(),
+                amount,
+                currency: "USDT".to_string(),
+            });
         }
         _ => return Err(ErrorCode::UnsupportedCurrency.into()),
     }

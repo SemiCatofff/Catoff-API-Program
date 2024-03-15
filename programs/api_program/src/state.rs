@@ -6,3 +6,16 @@ pub struct EscrowAccount {
     pub usdt_balance: u64, // Placeholder for USDT balance, actual tracking will be through the token account.
     pub authority: Pubkey, // Authority who can initiate withdrawals.
 }
+#[event]
+pub struct DepositEvent {
+    pub from: Pubkey,
+    pub amount: u64,
+    pub currency: String,
+}
+
+#[event]
+pub struct WithdrawEvent {
+    pub to: Pubkey,
+    pub amount: u64,
+    pub currency: String,
+}
