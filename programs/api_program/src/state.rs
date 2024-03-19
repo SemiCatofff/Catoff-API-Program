@@ -1,3 +1,4 @@
+
 use anchor_lang::prelude::*;
 
 #[account]
@@ -19,3 +20,4 @@ pub struct WithdrawEvent {
     pub amount: u64,
     pub currency: String,
 }
+

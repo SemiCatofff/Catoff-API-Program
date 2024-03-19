@@ -1,3 +1,4 @@
+
 {
     "scripts": {
         "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
