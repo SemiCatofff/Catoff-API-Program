@@ -5,6 +5,19 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
+pub struct InitializeEscrow<'info> {
+    #[account(
+        init,
+        payer = user,
+        space = 8 + 8 + 8 + 32 // The space required is the sum of the sizes of the fields in EscrowAccount
+    )]
+    pub escrow_account: Account<'info, EscrowAccount>,
+    #[account(mut)]
+    pub user: Signer<'info>, // User who pays for the account creation and is set as the authority
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct DepositSol<'info> {
     #[account(mut)]
     pub escrow_account: Account<'info, EscrowAccount>,
@@ -16,11 +29,11 @@ pub struct DepositUsdt<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
     #[account(mut)]
-    pub depositor_token_account: Account<'info, TokenAccount>, // The depositor's USDT account
+    pub depositor_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
-    pub escrow_token_account: Account<'info, TokenAccount>, // The escrow's USDT account
+    pub escrow_token_account: Account<'info, TokenAccount>,
     #[account(mut)]
-    pub escrow_account: Account<'info, EscrowAccount>, // To track USDT balance if needed.
+    pub escrow_account: Account<'info, EscrowAccount>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -36,6 +49,14 @@ pub struct Withdraw<'info> {
     /// Safety is ensured by runtime checks depending on the withdrawal currency type.
     pub to_account: AccountInfo<'info>, // For SOL withdrawals, this needs to be a SystemAccount.
     pub token_program: Program<'info, Token>,
+}
+
+pub fn initialize_escrow(ctx: Context<InitializeEscrow>) -> Result<()> {
+    let escrow_account = &mut ctx.accounts.escrow_account;
+    escrow_account.sol_balance = 0;
+    escrow_account.usdt_balance = 0;
+    escrow_account.authority = ctx.accounts.user.key();
+    Ok(())
 }
 
 pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
