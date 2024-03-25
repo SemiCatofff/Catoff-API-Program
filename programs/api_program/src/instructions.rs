@@ -57,6 +57,8 @@ pub fn initialize_escrow(ctx: Context<InitializeEscrow>) -> Result<()> {
     Ok(())
 }
 
+const MIN_LAMPORT_DEPOSIT: u64 = 1_000_000;
+
 pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
     require!(amount >= MIN_LAMPORT_DEPOSIT, ErrorCode::InvalidSolAmount);
 
