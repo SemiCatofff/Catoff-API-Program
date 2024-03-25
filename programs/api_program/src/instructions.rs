@@ -1,19 +1,14 @@
 use crate::error::ErrorCode;
 use crate::state::{DepositEvent, EscrowAccount, WithdrawEvent};
 use anchor_lang::prelude::*;
-// use anchor_lang::solana_program::system_instruction;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
 pub struct InitializeEscrow<'info> {
-    #[account(
-        init,
-        payer = user,
-        space = 8 + 8 + 8 + 32 // The space required is the sum of the sizes of the fields in EscrowAccount
-    )]
+    #[account(init, payer = owner, space = 8 + 8 + 8 + 32)]
     pub escrow_account: Account<'info, EscrowAccount>,
     #[account(mut)]
-    pub user: Signer<'info>, // User who pays for the account creation and is set as the authority
+    pub owner: Signer<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -21,11 +16,13 @@ pub struct InitializeEscrow<'info> {
 pub struct DepositSol<'info> {
     #[account(mut)]
     pub escrow_account: Account<'info, EscrowAccount>,
+    #[account(mut)]
     pub depositor: Signer<'info>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
-pub struct DepositUsdt<'info> {
+pub struct DepositUsdc<'info> {
     #[account(mut)]
     pub depositor: Signer<'info>,
     #[account(mut)]
@@ -42,7 +39,7 @@ pub struct Withdraw<'info> {
     #[account(mut)]
     pub escrow_account: Account<'info, EscrowAccount>,
     #[account(mut)]
-    pub escrow_token_account: Account<'info, TokenAccount>, // For USDT withdrawals.
+    pub escrow_token_account: Account<'info, TokenAccount>, // For USDC withdrawals.
     #[account(signer)]
     pub authority: Signer<'info>,
     /// CHECK: The `to_account` is a generic account that can be either a SOL account or an SPL Token account.
@@ -54,14 +51,32 @@ pub struct Withdraw<'info> {
 pub fn initialize_escrow(ctx: Context<InitializeEscrow>) -> Result<()> {
     let escrow_account = &mut ctx.accounts.escrow_account;
     escrow_account.sol_balance = 0;
-    escrow_account.usdt_balance = 0;
-    escrow_account.authority = ctx.accounts.user.key();
+    escrow_account.usdc_balance = 0;
+    escrow_account.authority = ctx.accounts.owner.key();
+
     Ok(())
 }
 
 pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
+    require!(amount >= MIN_LAMPORT_DEPOSIT, ErrorCode::InvalidSolAmount);
+
     let escrow_account = &mut ctx.accounts.escrow_account;
     escrow_account.sol_balance += amount;
+
+    let sol_transfer = anchor_lang::solana_program::system_instruction::transfer(
+        &ctx.accounts.depositor.key(),
+        &ctx.accounts.escrow_account.key(),
+        amount,
+    );
+    anchor_lang::solana_program::program::invoke(
+        &sol_transfer,
+        &[
+            ctx.accounts.depositor.to_account_info().clone(),
+            ctx.accounts.escrow_account.to_account_info().clone(),
+            ctx.accounts.system_program.to_account_info().clone(),
+        ],
+    )?;
+
     emit!(DepositEvent {
         from: ctx.accounts.depositor.key(),
         amount,
@@ -71,7 +86,7 @@ pub fn deposit_sol(ctx: Context<DepositSol>, amount: u64) -> Result<()> {
     Ok(())
 }
 
-pub fn deposit_usdt(ctx: Context<DepositUsdt>, amount: u64) -> Result<()> {
+pub fn deposit_usdc(ctx: Context<DepositUsdc>, amount: u64) -> Result<()> {
     let cpi_accounts = Transfer {
         from: ctx.accounts.depositor_token_account.to_account_info(),
         to: ctx.accounts.escrow_token_account.to_account_info(),
@@ -81,12 +96,12 @@ pub fn deposit_usdt(ctx: Context<DepositUsdt>, amount: u64) -> Result<()> {
     let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
     token::transfer(cpi_ctx, amount)?;
     let escrow_account = &mut ctx.accounts.escrow_account;
-    escrow_account.usdt_balance += amount;
+    escrow_account.usdc_balance += amount;
 
     emit!(DepositEvent {
         from: ctx.accounts.depositor.key(),
         amount,
-        currency: "USDT".to_string(),
+        currency: "USDC".to_string(),
     });
 
     Ok(())
@@ -120,6 +135,9 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
                 .try_borrow_mut_lamports()? -= amount;
             **ctx.accounts.to_account.try_borrow_mut_lamports()? += amount;
 
+            let escrow_account = &mut ctx.accounts.escrow_account;
+            escrow_account.sol_balance -= amount;
+
             // Emit the withdraw event for SOL
             emit!(WithdrawEvent {
                 to: ctx.accounts.to_account.key(),
@@ -127,8 +145,8 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
                 currency: "SOL".to_string(),
             });
         }
-        "USDT" => {
-            // Transfer USDT using the SPL Token program
+        "USDC" => {
+            // Transfer USDC using the SPL Token program
             let cpi_accounts = Transfer {
                 from: ctx.accounts.escrow_token_account.to_account_info(),
                 to: ctx.accounts.to_account.to_account_info(),
@@ -138,11 +156,11 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
             let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
             token::transfer(cpi_ctx, amount)?;
 
-            // Emit the withdraw event for USDT
+            // Emit the withdraw event for USDC
             emit!(WithdrawEvent {
                 to: ctx.accounts.to_account.key(),
                 amount,
-                currency: "USDT".to_string(),
+                currency: "USDC".to_string(),
             });
         }
         _ => return Err(ErrorCode::UnsupportedCurrency.into()),
