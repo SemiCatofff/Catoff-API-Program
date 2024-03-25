@@ -12,7 +12,7 @@ ap_iprogram = "CbkPd8y8rgVaAgfGo6TmiPXd5JGViVbbZW6WBCs8aD9V"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "devnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
