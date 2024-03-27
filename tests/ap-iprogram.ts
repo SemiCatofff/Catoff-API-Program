@@ -1,11 +1,13 @@
 import * as anchor from "@project-serum/anchor";
-import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey  } from "@solana/web3.js";
 import {
   createMint,
   createAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import { assert } from "chai";
+import * as web3 from '@solana/web3.js';
 
 describe("deposit_sol functionality", () => {
   const admin = pg.wallet;
