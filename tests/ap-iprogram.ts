@@ -1,16 +1,22 @@
 import * as anchor from "@project-serum/anchor";
-import { LAMPORTS_PER_SOL, PublicKey  } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   createMint,
   createAssociatedTokenAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import * as web3 from "@solana/web3.js";
 import { assert } from "chai";
-import * as web3 from '@solana/web3.js';
 
+const idl = JSON.parse(require('fs').readFileSync('./target/idl/api_program.json', 'utf8'));
+const programId = new PublicKey('<Your_Program_ID>');
+const provider =anchor.AnchorProvider.env()
+
+  
 describe("deposit_sol functionality", () => {
-  const admin = pg.wallet;
+  // const admin = pg.wallet;
+  const admin  = web3.Keypair.generate();
   const escrowAccount = web3.Keypair.generate();
   const depositor = anchor.web3.Keypair.generate();
 
@@ -21,7 +27,7 @@ describe("deposit_sol functionality", () => {
         owner: admin.publicKey,
         systemProgram: web3.SystemProgram.programId,
       },
-      signers: [admin.keypair, escrowAccount],
+      signers: [admin, escrowAccount],
     });
 
     const transaction = new web3.Transaction().add(
@@ -32,7 +38,7 @@ describe("deposit_sol functionality", () => {
       })
     );
     await web3.sendAndConfirmTransaction(pg.connection, transaction, [
-      admin.keypair,
+      admin,
     ]);
 
     const depositAmount = new anchor.BN(0.001 * LAMPORTS_PER_SOL);
@@ -119,7 +125,7 @@ describe("deposit_sol functionality", () => {
           toAccount: admin.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [admin.keypair],
+        signers: [admin],
       }
     );
 
