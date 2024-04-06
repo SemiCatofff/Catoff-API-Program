@@ -1,3 +1,4 @@
+
 use anchor_lang::prelude::*;
 
 #[error_code]
@@ -16,5 +17,8 @@ pub enum ErrorCode {
 
     #[msg("Invalid input provided.")]
     InvalidInput,
+
+    #[msg("Invalid sol amount.")]
+    InvalidSolAmount,
     // Add more error codes as needed for your specific contract logic
 }
