@@ -5,15 +5,17 @@
 seeds = false
 skip-lint = false
 
-[programs.localnet]
-ap_iprogram = "CbkPd8y8rgVaAgfGo6TmiPXd5JGViVbbZW6WBCs8aD9V"
+[programs.devnet]
+ap_iprogram = "79VSBMCvvTKNwZSocidYCTxDEDqy39ge9fdzWiBcP5WV"
+
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "/root/new_program_id.json"
+
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

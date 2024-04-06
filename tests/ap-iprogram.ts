@@ -3,7 +3,6 @@ import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import {
   createMint,
   createAssociatedTokenAccount,
-  mintTo,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 
@@ -117,7 +116,7 @@ describe("deposit_sol functionality", () => {
           toAccount: admin.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
         },
-        signers: [admin.keypair],
+        signers: [admin.keypair, escrowAccount],
       }
     );
 
