@@ -36,7 +36,7 @@ pub struct DepositUsdc<'info> {
 
 #[derive(Accounts)]
 pub struct Withdraw<'info> {
-    #[account(mut)]
+    #[account(mut, signer)]
     pub escrow_account: Account<'info, EscrowAccount>,
     #[account(mut)]
     pub escrow_token_account: Account<'info, TokenAccount>, // For USDC withdrawals.
@@ -44,6 +44,7 @@ pub struct Withdraw<'info> {
     pub authority: Signer<'info>,
     /// CHECK: The `to_account` is a generic account that can be either a SOL account or an SPL Token account.
     /// Safety is ensured by runtime checks depending on the withdrawal currency type.
+    #[account(mut)]
     pub to_account: AccountInfo<'info>, // For SOL withdrawals, this needs to be a SystemAccount.
     pub token_program: Program<'info, Token>,
 }
@@ -157,6 +158,9 @@ pub fn withdraw(ctx: Context<Withdraw>, amount: u64, currency: String) -> Result
             let cpi_program = ctx.accounts.token_program.to_account_info();
             let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
             token::transfer(cpi_ctx, amount)?;
+
+            let escrow_account = &mut ctx.accounts.escrow_account;
+            escrow_account.usdc_balance -= amount;
 
             // Emit the withdraw event for USDC
             emit!(WithdrawEvent {
